@@ -1,0 +1,76 @@
+---
+title: "GBM"
+author: "Leo Lam (lkl2129)"
+date: "03/21/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Cross Validation Function - GBM
+```{r}
+c_v <- function(dataset, K){
+  n <- nrow(dataset); d <- ncol(dataset)
+  label<- dataset$y
+  folds<- sample(rep(1:K, each=n/K))
+  time<- c(); accuracy<- c()
+  for(i in 1:K){
+    train<- dataset[folds != i, -d]
+    validate<- dataset[folds == i, -d]
+    training_label<- label[folds != i]
+    validate_label<- label[folds == i]
+    
+    # shrinkage = 0.03, n.trees = 600
+    time[i]<- system.time(gbm<- gbm(training_label~., dataset=train, interaction.depth=3,
+                                    shrinkage=0.03, n.trees=600, distribution='multinomial'))[1]
+    pred<- predict.gbm(gbm, validate, n.trees=gbm$n.trees, type='response')
+    accuracy[i]<- sum(apply(pred, 1, which.max) == validate_label) / length(validate_label)
+  }
+  return(list('accuracy'= mean(accuracy), 'time'= mean(time)))
+}
+```
+
+
+# GBM Model
+
+# SIFT
+```{r}
+train_img <- read.csv('../output/SIFT_train.csv', header=F)
+label_train <- read.csv('../output/label_train.csv', header = T)
+
+train_img <- train_img[,2:2001]
+train_img$y <- label_train[,3]
+training_SIFT<-train_img
+
+c_v(training_SIFT, K=3)
+```
+
+# RGB
+```{r}
+training_RGB <- read.csv('../output/rgb_feature1_0.csv')
+training_RGB0$y <- label_train[,3]
+
+c_v(training_RGB, K=3)
+```
+
+# HOG 
+```{r}
+training_HOG<- read.csv('../output/hog_feature.csv')
+
+c_v(training_HOG, K=3)
+```
+
+# LBP
+```{r}
+training_LBP <- read.csv('../output/lbp.csv', header=F)
+training_LBP$y <- label_train[,3]
+
+c_v(training_LBP, K=3)
+```
+
+
+
+

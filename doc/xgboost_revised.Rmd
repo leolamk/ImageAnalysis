@@ -1,0 +1,179 @@
+---
+title: "Xgboost"
+author: "Shiyu Liu"
+date: "2018Äê3ÔÂ19ÈÕ"
+output: html_document
+---
+
+
+```{r}
+library(xgboost)
+labels<-read.csv("../data/train/label_train.csv")
+label<-labels$label-1
+
+
+```
+
+```{r}
+xgboost_para <- function(dat_train,label_train,K){
+  dtrain = xgb.DMatrix(data=data.matrix(dat_train),label=label_train)
+  max_depth<-c(3,5,7)
+  eta<-c(0.1,0.3,0.5)
+  best_params <- list()
+  best_err <- Inf 
+  para_mat = matrix(nrow=3, ncol=3)
+  
+  for (i in 1:3){
+    for (j in 1:3){
+      my.params <- list(max_depth = max_depth[i], eta = eta[j])
+      set.seed(11)
+      cv.output <- xgb.cv(data=dtrain, params=my.params, 
+                          nrounds = 100, gamma = 0, subsample = 0.5,
+                          objective = "multi:softprob", num_class = 3,
+                          nfold = K, nthread = 2, early_stopping_rounds = 5, 
+                          verbose = 0, maximize = F, prediction = T)
+      
+      min_err <- min(cv.output$evaluation_log$test_merror_mean)
+      para_mat[i,j] <- min_err
+      
+      if (min_err < best_err){
+        best_params <- my.params
+        best_err <- min_err
+      }
+    }
+  }
+  best_params$num_class <- 3
+  return(list(para_mat, best_params, best_err))
+}
+
+
+
+```
+
+
+```{r}
+best_para<-list(max_depth = 3, eta = 0.3, nrounds = 100, gamma = 0,
+                nthread = 2, subsample = 0.5,
+                objective = "multi:softprob", num_class = 3)
+
+xgboost_train<- function(x, y, params){
+  dtrain = xgb.DMatrix(data=data.matrix(x),label=y)
+  set.seed(11)
+  bst <- xgb.train(data=dtrain, params = params, nrounds = 100)
+  return(bst)
+}
+
+xgboost_test<- function(model, x){
+  pred <- predict(model, as.matrix(x))
+  pred <- matrix(pred, ncol=3, byrow=TRUE)
+  pred_labels <- max.col(pred) - 1
+  return(pred_labels)
+}
+
+xgboost_test_r<-function(model, x){
+  pred<-predict(model, as.matrix(x))
+  return(pred)
+
+}
+
+
+
+
+xgboost_cv.function <- function(X.train, y.train, K){
+  
+  n <- length(y.train)
+  n.fold <- floor(n/K)
+  s <- sample(rep(1:K, c(rep(n.fold, K-1), n-(K-1)*n.fold)))  
+  cv.error <- rep(NA, K)
+  train_time <- rep(NA, K)
+  
+  for (i in 1:K){
+    train.data <- X.train[s != i,]
+    train.label <- y.train[s != i]
+    test.data <- X.train[s == i,]
+    test.label <- y.train[s == i]
+    
+    t = proc.time()
+    bst <- xgboost_train(train.data, train.label, best_para)
+    train_time[i] = (proc.time() - t)[3]
+    
+    pred_label <- xgboost_test(bst, test.data)
+    cv.error[i] <- sum(pred_label != test.label)/length(test.label)
+  }			
+  return(c(mean(1-cv.error),mean(train_time)))
+}
+
+## HOG 
+feature_hog<- read.csv("../data/train/hog.csv")
+labels<-read.csv("../data/train/label_train.csv")
+training_y_hog<- label
+training_x_hog<- feature_hog
+
+# cv<-xgboost.cv(data = as.matrix(training_x_hog), label = label, nrounds = 300, nthread = 2, nfold = 5)
+
+system.time(acc_hog<-xgboost_cv.function(training_x_hog, training_y_hog, 5))
+system.time(para_hog<-xgboost_para(training_x_hog, training_y_hog, 5))
+
+```
+
+
+## RGB
+
+```{r}
+feature<- read.csv("../data/train/rgb_feature1_0.csv")
+training_y_RGB<- label
+training_x_RGB<- feature[ ,!(colnames(feature) %in% c("y"))]
+
+system.time(acc_RGB<-xgboost_cv.function(training_x_RGB, training_y_RGB, 5))
+system.time(para_RGB<-xgboost_para(training_x_RGB, training_y_RGB, 5))
+
+```
+
+## LBP
+
+```{r}
+feature_lbp<- read.csv("../data/train/lbp.csv", header = FALSE)
+training_y_lbp<- label
+training_x_lbp<- feature_lbp
+system.time(acc_lbp<-xgboost_cv.function(training_x_lbp, label, 5))
+system.time(para_lbp<-xgboost_para(training_x_lbp, label, 5))
+```
+
+## Sift
+
+```{r}
+feature_SIFT<-read.csv("../data/train/SIFT_train.csv", header = FALSE)
+
+training_y_SIFT<- label
+training_x_SIFT<- feature_SIFT[,-1]
+system.time(acc_sift<-xgboost_cv.function(training_x_SIFT, training_y_SIFT, 5))
+system.time(para_sift<-xgboost_para(training_x_SIFT, training_y_SIFT, 5))
+
+```
+
+```{r}
+train<-sample(1:3000, 2000)
+fit_hog_xgboost<-xgboost_train(training_x_hog[train,], labels$label[train]-1, para_hog[[2]])
+p_hog<-round(predict(fit_hog_xgboost, as.matrix(training_x_hog[-train,])))
+sum(p_hog!=label[-train])/1000
+#p<-xgboost_test(fit_hog_xgboost, training_x_hog)
+
+
+fit_lbp<-xgboost_train(training_x_lbp[train,], labels$label[train]-1, para_lbp[[2]])
+#xgb_test(fit2, training_x_lbp)
+p_LBP <- round(predict(fit_lbp, as.matrix(training_x_lbp[-train, ])))
+sum(p_LBP!= label[-train])/1000
+
+fit_rgb_xgboost<-xgboost_train(training_x_RGB[train,], labels$label[train]-1, para_RGB[[2]])
+p_RGB<-round(predict(fit_rgb_xgboost, as.matrix(training_x_RGB[-train,])))
+sum(p_RGB!=label[-train])/1000
+
+fit_sift_xgboost<-xgboost_train(training_x_SIFT[train,], labels$label[train]-1, para_sift[[2]])
+p_sift<-round(predict(fit_sift_xgboost, as.matrix(training_x_SIFT[-train,])))
+sum(p_sift!=label[-train])/1000
+
+
+```
+
+
+

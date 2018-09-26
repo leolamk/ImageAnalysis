@@ -1,0 +1,392 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+### Step1: Train and Test Function
+
+```{r}
+
+train<- function(dat, label,N){
+  
+  library(randomForest)
+  
+  t = proc.time()
+  df <- as.data.frame(cbind(dat, label))
+  colnames(df)[ncol(df)]<-"y"
+  fit <- randomForest(as.factor(y)~.,data = df, importance = TRUE,ntree = N)
+  
+  train_time = (proc.time() - t)[3]
+  cat("Elapsed time for Training Random Forest with 500 trees is ", train_time, " seconds \n")
+  
+  return(fit)
+}
+
+
+test<- function(model, dat){
+  
+  pred <-predict(model,newdata=dat)
+ 
+  return (pred)
+}
+
+```
+
+
+### Step2: Chooce the best parameter
+
+```{r}
+
+#lbp data
+training <- read.csv("../output/lbp_training.csv")[,-1]
+testing <- read.csv("../output/lbp_testing.csv")[,-1]
+
+training_y <- training[ , "y"]
+training_x <- training[ ,!(colnames(training) %in% c("y"))]
+testing_y <- testing[ ,"y"]
+testing_x <- testing[ , !(colnames(testing) %in% c("y"))]
+
+#parameter choosing
+error_testing<-c()
+N<-c(300,400,500,600,700,800,900)
+
+for(i in 1:7){
+
+  fit <- train(training_x,training_y,N[i])
+
+  pred_testing <- test(fit, testing_x)
+
+  error_testing[i] <- mean(pred_testing != as.factor(testing_y))
+  cat("Accurate rate for Training Random Forest with " ,N[i]," trees is ", 1-error_testing[i],'\n' )
+
+}
+
+
+
+```
+Elapsed time for Training Random Forest with  300  trees is  28.39  seconds 
+Accurate rate for Training Random Forest with  300  trees is  0.8344444
+Elapsed time for Training Random Forest with  400  trees is  36.77  seconds 
+Accurate rate for Training Random Forest with  400  trees is  0.8433333
+Elapsed time for Training Random Forest with  500  trees is  45.82  seconds 
+Accurate rate for Training Random Forest with  500  trees is  0.8455556
+Elapsed time for Training Random Forest with  600  trees is  57.04  seconds 
+Accurate rate for Training Random Forest with  600  trees is  0.8444444
+Elapsed time for Training Random Forest with  700  trees is  67.42  seconds 
+Accurate rate for Training Random Forest with  700  trees is  0.85
+Elapsed time for Training Random Forest with  800  trees is  74.27  seconds 
+Accurate rate for Training Random Forest with  800  trees is  0.85
+Elapsed time for Training Random Forest with  900  trees is  83.63  seconds 
+Accurate rate for Training Random Forest with  900  trees is  0.8411111
+
+Best parameter for lbp feature + RandomForest should be 700.
+
+```{r}
+#hog data
+training <- read.csv("../output/hog_training.csv")
+testing <- read.csv("../output/hog_testing.csv")
+
+training_y <- training[ , "y"]
+training_x <- training[ ,!(colnames(training) %in% c("y"))]
+testing_y <- testing[ ,"y"]
+testing_x <- testing[ , !(colnames(testing) %in% c("y"))]
+
+#parameter choosing
+error_testing<-c()
+N<-c(300,400,500,600,700,800,900)
+
+for(i in 1:7){
+
+  fit <- train(training_x,training_y,N[i])
+
+  pred_testing <- test(fit, testing_x)
+
+  error_testing[i] <- mean(pred_testing != as.factor(testing_y))
+  cat("Accurate rate for Training Random Forest with " ,N[i]," trees is ", 1-error_testing[i],'\n' )
+
+}
+```
+Elapsed time for Training Random Forest with  300  trees is  57.67  seconds 
+Accurate rate for Training Random Forest with  300  trees is  0.7988889 
+Elapsed time for Training Random Forest with  400  trees is  75.55  seconds 
+Accurate rate for Training Random Forest with  400  trees is  0.7944444 
+Elapsed time for Training Random Forest with  500  trees is  94.76  seconds 
+Accurate rate for Training Random Forest with  500  trees is  0.8111111 
+Elapsed time for Training Random Forest with  600  trees is  115.47  seconds 
+Accurate rate for Training Random Forest with  600  trees is  0.8088889 
+Elapsed time for Training Random Forest with  700  trees is  130.89  seconds 
+Accurate rate for Training Random Forest with  700  trees is  0.8077778 
+Elapsed time for Training Random Forest with  800  trees is  150.78  seconds 
+Accurate rate for Training Random Forest with  800  trees is  0.8088889 
+Elapsed time for Training Random Forest with  900  trees is  169.95  seconds 
+Accurate rate for Training Random Forest with  900  trees is  0.8022222 
+
+Best parameter for HoG feature + RandomForest is 500.
+
+
+```{r}
+#hsv data
+training <- read.csv("../output/hsv_training.csv")[,-1]
+testing <- read.csv("../output/hsv_testing.csv")[,-1]
+
+training_y <- training[ , "y"]
+training_x <- training[ ,!(colnames(training) %in% c("y"))]
+testing_y <- testing[ ,"y"]
+testing_x <- testing[ , !(colnames(testing) %in% c("y"))]
+
+#parameter choosing
+error_testing<-c()
+N<-c(300,400,500,600,700,800,900)
+
+for(i in 1:7){
+
+  fit <- train(training_x,training_y,N[i])
+
+  pred_testing <- test(fit, testing_x)
+
+  error_testing[i] <- mean(pred_testing != as.factor(testing_y))
+  cat("Accurate rate for Training Random Forest with " ,N[i]," trees is ", 1-error_testing[i],'\n' )
+
+}
+```
+
+Elapsed time for Training Random Forest with  300  trees is  28.4  seconds 
+Accurate rate for Training Random Forest with  300  trees is  0.8544444 
+Elapsed time for Training Random Forest with  400  trees is  37.22  seconds 
+Accurate rate for Training Random Forest with  400  trees is  0.8533333 
+Elapsed time for Training Random Forest with  500  trees is  47.33  seconds 
+Accurate rate for Training Random Forest with  500  trees is  0.8522222 
+Elapsed time for Training Random Forest with  600  trees is  54.82  seconds 
+Accurate rate for Training Random Forest with  600  trees is  0.8555556 
+Elapsed time for Training Random Forest with  700  trees is  66.46  seconds 
+Accurate rate for Training Random Forest with  700  trees is  0.8533333 
+Elapsed time for Training Random Forest with  800  trees is  73.55  seconds 
+Accurate rate for Training Random Forest with  800  trees is  0.8511111 
+Elapsed time for Training Random Forest with  900  trees is  84.57  seconds 
+Accurate rate for Training Random Forest with  900  trees is  0.8544444 
+
+Best parameter for HSV feature + RandomForest is 600.
+
+
+
+```{r}
+#rgb data
+training <- read.csv("../output/rgb_training.csv")
+testing <- read.csv("../output/rgb_testing.csv")
+
+training_y <- training[ , "y"]
+training_x <- training[ ,!(colnames(training) %in% c("y"))]
+testing_y <- testing[ ,"y"]
+testing_x <- testing[ , !(colnames(testing) %in% c("y"))]
+
+#parameter choosing
+error_testing<-c()
+N<-c(300,400,500,600,700,800,900)
+
+for(i in 1:7){
+
+  fit <- train(training_x,training_y,N[i])
+
+  pred_testing <- test(fit, testing_x)
+
+  error_testing[i] <- mean(pred_testing != as.factor(testing_y))
+  cat("Accurate rate for Training Random Forest with " ,N[i]," trees is ", 1-error_testing[i],'\n' )
+
+}
+```
+Elapsed time for Training Random Forest with  300  trees is  115.56  seconds 
+Accurate rate for Training Random Forest with  300  trees is  0.8677778 
+Elapsed time for Training Random Forest with  400  trees is  158.03  seconds 
+Accurate rate for Training Random Forest with  400  trees is  0.8677778 
+Elapsed time for Training Random Forest with  500  trees is  193.66  seconds 
+Accurate rate for Training Random Forest with  500  trees is  0.8755556 
+Elapsed time for Training Random Forest with  600  trees is  232.16  seconds 
+Accurate rate for Training Random Forest with  600  trees is  0.8666667 
+Elapsed time for Training Random Forest with  700  trees is  274.35  seconds 
+Accurate rate for Training Random Forest with  700  trees is  0.8733333 
+Elapsed time for Training Random Forest with  800  trees is  305.82  seconds 
+Accurate rate for Training Random Forest with  800  trees is  0.8711111 
+Elapsed time for Training Random Forest with  900  trees is  357.05  seconds 
+Accurate rate for Training Random Forest with  900  trees is  0.8744444 
+
+Best parameter for RGB feature + RandomForest is 500.
+
+
+```{r}
+#sift data
+library(dplyr)
+sift_train <- read.csv("../data/training_set/SIFT_train.csv",header = F)
+label_train<- read.csv("../data/training_set/label_train.csv")
+training_y<- matrix(label_train[, 3],ncol=1)
+colnames(training_y)<-"y"
+training_x<- sift_train[, -1]
+training1<- training_x
+training1$y<- training_y
+training<- sample_frac(training1, 0.7, replace=FALSE)
+testing<- setdiff(training1, training, 'rows')
+
+training_y <- training[ , "y"]
+training_x <- training[ ,!(colnames(training) %in% c("y"))]
+testing_y <- testing[ ,"y"]
+testing_x <- testing[ , !(colnames(testing) %in% c("y"))]
+
+#parameter choosing
+error_testing<-c()
+N<-c(300,400,500,600,700,800,900)
+
+for(i in 1:7){
+
+  fit <- train(training_x,training_y,N[i])
+
+  pred_testing <- test(fit, testing_x)
+
+  error_testing[i] <- mean(pred_testing != as.factor(testing_y))
+  cat("Accurate rate for Training Random Forest with " ,N[i]," trees is ", 1-error_testing[i],'\n' )
+
+}
+```
+
+Elapsed time for Training Random Forest with  300  trees is  258.63  seconds 
+Accurate rate for Training Random Forest with  300  trees is  0.6688889 
+Elapsed time for Training Random Forest with  400  trees is  347.91  seconds 
+Accurate rate for Training Random Forest with  400  trees is  0.6777778 
+Elapsed time for Training Random Forest with  500  trees is  430.23  seconds 
+Accurate rate for Training Random Forest with  500  trees is  0.6688889 
+Elapsed time for Training Random Forest with  600  trees is  517.32  seconds 
+Accurate rate for Training Random Forest with  600  trees is  0.6711111 
+Elapsed time for Training Random Forest with  700  trees is  606.16  seconds 
+Accurate rate for Training Random Forest with  700  trees is  0.6711111 
+Elapsed time for Training Random Forest with  800  trees is  688.15  seconds 
+Accurate rate for Training Random Forest with  800  trees is  0.6722222 
+Elapsed time for Training Random Forest with  900  trees is  775.59  seconds 
+Accurate rate for Training Random Forest with  900  trees is  0.67 
+
+Best parameter for SIFT feature + RandomForest is 400.
+
+
+### Step3: Cross Validation Function 
+
+```{r}
+
+cv.function <- function(data, label, K,para){
+  # data: the whole dataset
+  # label: a column vector with 0 and 1
+  # K: number of folds during the cross validation process
+
+  set.seed(5243)
+  library(caret)
+
+  fold <- createFolds(1:nrow(data), K, list=T, returnTrain=F)
+  fold <- as.data.frame(fold)
+  
+  cv.error <- c()
+  
+  for (i in 1:K){
+    
+    test.data <- data[fold[,i],]
+    train.data <- data[-fold[,i],]
+    test.label <- label[fold[,i],]
+    train.label <- label[-fold[,i],]
+    
+    fit <- train(train.data, train.label,N=para)
+    pred <- test(fit, test.data)  
+    cv.error[i] <- mean(pred != test.label)
+  }
+  
+   return(mean(cv.error))
+}
+
+
+```
+
+### Feature selection
+
+##### 1. full SIFT
+
+```{r}
+sift_train<- read.csv("../data/training_set/SIFT_train.csv",header = F)
+label_train<- read.csv("../data/training_set/label_train.csv")
+training_y<- matrix(label_train[, 3],ncol=1)
+colnames(training_y)<-"y"
+training_x<- sift_train[,-1]
+
+cv.sift.rf<-cv.function(training_x,training_y,K=5,para = 400)
+
+ar_cv.sift.rf<- 1-cv.sift.rf
+ar_cv.sift.rf
+```
+
+Elapsed time for Training Random Forest with  400  trees is  464.16  seconds 
+Elapsed time for Training Random Forest with  400  trees is  460.02  seconds 
+Elapsed time for Training Random Forest with  400  trees is  467.97  seconds 
+Elapsed time for Training Random Forest with  400  trees is  455.74  seconds 
+Elapsed time for Training Random Forest with  400  trees is  458.23  seconds 
+
+Accurate rate is 0.7036667.
+##### 2.HOG
+
+```{r}
+HOG_train <- rbind(read.csv("../output/hog_training.csv"),read.csv("../output/hog_testing.csv"))
+
+training_y<- matrix(HOG_train[,ncol(HOG_train)],ncol=1)
+colnames(training_y)<-"y"
+training_x<- HOG_train [, -ncol(HOG_train)]
+
+cv.HOG.rf<-cv.function(training_x,training_y,K=5,para = 500)
+
+ar_cv.HOG.rf<-1-cv.HOG.rf
+
+```
+Elapsed time for Training Random Forest with  500  trees is  118.54  seconds 
+Elapsed time for Training Random Forest with  500  trees is  120.28  seconds 
+Elapsed time for Training Random Forest with  500  trees is  2220.36  seconds 
+Elapsed time for Training Random Forest with  500  trees is  134.5  seconds 
+Elapsed time for Training Random Forest with  500  trees is  123.4  seconds
+
+Accurate rate is 0.8036667.
+
+```{r}
+#rgb
+
+RGB_train<- read.csv("../output/rgb_feature.csv")
+
+training_y<- matrix(RGB_train[,ncol(RGB_train)],ncol=1)
+colnames(training_y)<-"y"
+training_x<- RGB_train[, -ncol(RGB_train)]
+
+cv.RGB.rf<-cv.function(training_x,training_y,K=5,para = 500)
+
+ar_cv.RGB.rf<-1-cv.RGB.rf
+
+
+```
+Elapsed time for Training Random Forest with  500  trees is  233.2  seconds 
+Elapsed time for Training Random Forest with  500  trees is  230.94  seconds 
+Elapsed time for Training Random Forest with  500  trees is  227.79  seconds 
+Elapsed time for Training Random Forest with  500  trees is  227.76  seconds 
+Elapsed time for Training Random Forest with  500  trees is  227.88  seconds 
+
+Accurate rate is 0.8666667.
+
+```{r}
+lbp_train <- rbind(read.csv("../output/lbp_training.csv"),read.csv("../output/lbp_testing.csv"))
+lbp_train <- lbp_train[,-1]
+training_y<- matrix(lbp_train[,ncol(lbp_train)],ncol=1)
+colnames(training_y)<-"y"
+training_x<- lbp_train [, -ncol(lbp_train)]
+
+cv.lbp.rf<-cv.function(training_x,training_y,K=5,para = 700)
+
+ar_cv.lbp.rf<-1-cv.lbp.rf
+ar_cv.lbp.rf
+```
+Elapsed time for Training Random Forest with  700  trees is  83.17  seconds 
+Elapsed time for Training Random Forest with  700  trees is  84.95  seconds 
+Elapsed time for Training Random Forest with  700  trees is  83.39  seconds 
+Elapsed time for Training Random Forest with  700  trees is  83.58  seconds 
+Elapsed time for Training Random Forest with  700  trees is  89.97  seconds 
+
+Accurate rate is 0.8493333.
+

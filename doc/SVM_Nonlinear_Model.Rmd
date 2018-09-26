@@ -1,0 +1,151 @@
+---
+title: "SVM_nonlinear"
+output: html_notebook
+---
+
+#step1: Data
+```{r}
+library(e1071)
+library(dplyr)
+setwd("~/Documents/Spring2018-Project3-Group5")
+```
+
+```{r,warning= FALSE}
+y<- read.csv("~/Documents/Spring2018-Project3-Group5/data/train/label_train.csv")
+feature.sift<- read.csv("~/Documents/Spring2018-Project3-Group5/data/train/sift_train.csv")
+training_x<- feature.sift
+training_y<- y$label[-1]
+training1<- training_x
+training1$y<- training_y
+training<- sample_frac(training1, 0.7, replace=FALSE)
+testing<- setdiff(training1, training, 'rows')
+saveRDS(training, "~/Documents/Spring2018-Project3-Group5/output/training.RData")
+saveRDS(testing, "~/Documents/Spring2018-Project3-Group5/output/testing.RData")
+```
+
+
+```{r}
+training<- readRDS("~/Documents/Spring2018-Project3-Group5/output/training.RData")
+testing<- readRDS("~/Documents/Spring2018-Project3-Group5/output/testing.RData")
+```
+
+```{r}
+training_y<- training$y
+training_x<- training[ ,-c(1,2002)]
+testing_y<- testing$y
+testing_x<- testing[ ,-c(1,2002)]
+trainingData<-data.frame(x=training_x, y=as.factor(training_y))
+testData<-data.frame(x=testing_x, y=as.factor(testing_y))
+```
+
+##step2: Using Cross-Validation to find the best parameters
+##SVM Non-Linear model:
+```{r}
+nonlinear.tune <- tune(svm, trainingData$y~. , data=trainingData,kernel="radial",  ranges=list(cost=c(20,80,140), gamma=c(0.01, 0.1, 1)))
+nonlinear.bestmodel = nonlinear.tune$best.model
+summary(nonlinear.bestmodel)
+
+nonlinear.y=predict(nonlinear.bestmodel,testData)
+nonlinear.class<-table(predict=nonlinear.y, truth=testData$y)
+nonlinear.accuracy<-sum(diag(nonlinear.class))/sum(nonlinear.class)
+nonlinear.accuracy
+```
+#cost=140 and gamma=1 
+
+#Step 3: inputing the best parameters into cross validation function
+```{r}
+function.nonlinear <- function(X.train, y.train, K){
+  train_time<-c()
+  n <- length(y.train)
+  n.fold <- floor(n/K)
+  s <- sample(rep(1:K, c(rep(n.fold, K-1), n-(K-1)*n.fold)))  
+  error <- rep(NA, K)
+  #cross validation
+  for (i in 1:K){
+    train.data <- X.train[s != i,]
+    train.label <- y.train[s != i]
+    test.data <- X.train[s == i,]
+    test.label <- y.train[s == i]
+    test=data.frame(x=test.data, y=as.factor(test.label))
+    train=data.frame(x=train.data, y=as.factor(train.label))
+    
+    t = proc.time()
+    lb <-train.label
+    num_class <- 3
+    set.seed(11)
+    
+    svm.model<-svm(y~.,data=train, kernel="radial",cost=140, gamma=1)
+    
+    train_time[i] <- (proc.time() - t)[3]*K
+    
+    ypred=predict(svm.model, test)
+    class.pred <-table(predict=ypred, truth=test$y)
+    error[i]<-1-sum(diag(class.pred))/sum(class.pred)
+    
+    
+  }    	
+  return(c(mean(1-error),mean(train_time)))
+}
+```
+
+
+#Step 4:Using different feature models
+## Feature model SIFT
+
+```{r}
+y<- read.csv("~/Documents/Spring2018-Project3-Group5/data/train/label_train.csv")
+feature.sift<- read.csv("~/Documents/Spring2018-Project3-Group5/data/train/sift_train.csv")
+training_x<- feature.sift
+training_y<- y$label[-1]
+
+sift.result<- function.nonlinear(training_x, training_y, 5)
+sift.result
+# accuracy rate 0.3087501
+# running time 401.7060000
+```
+
+## Feature model hog
+
+```{r}
+feature.hog<- read.csv("~/Documents/Spring2018-Project3-Group5/output/hog_feature.csv")
+feature.hog<-cbind(feature.hog,y$label)
+#ncol(feature.hog)=577
+training_y<- feature.hog[ , 577]
+training_x<- feature.hog[ ,-577]
+
+hog.result<-function.nonlinear(training_x, training_y, 5)
+hog.result
+# accuracy rate 0.3133333 
+# running time 122.8620000
+```
+
+## Feature model lbp
+
+```{r}
+feature.lbp<- read.csv("~/Documents/Spring2018-Project3-Group5/output/lbp.csv")
+feature.lbp<-cbind(feature.lbp,y$label[-1])
+#ncol(feature.lbp)=60
+training_y<- feature.lbp[ , 60]
+training_x<- feature.lbp[ ,-60]
+
+lbp.result<-function.nonlinear(training_x, training_y, 5)
+lbp.result
+# accuracy rate 0.4975279 
+# running time 14.6730000
+```
+
+## Feature model RGB
+
+```{r,warning=F}
+feature.rgb<- read.csv("~/Documents/Spring2018-Project3-Group5/output/rgb_feature.csv")
+feature.rgb<-cbind(feature.rgb,y$label)
+#ncol(feature.rgb)=1441
+training_y<- feature.rgb[ , 1441]
+training_x<- feature.rgb[ ,-1441]
+
+rgb.result<-function.nonlinear(training_x, training_y, 5)
+rgb.result
+# accuracy rate 0.7693333 
+# running time 107.2550000
+```
+
